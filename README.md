@@ -1,27 +1,132 @@
-# Angular12Webpack5InlineLoaderRepro
+# Angular12 + Webpack5 + inline loader - issue reproduction
 
 This project was generated with [Angular CLI](https://github.com/angular/angular-cli) version 12.2.10.
 
-## Development server
+## Step 1: create a new Angular12 workspace
+```
+$ npx -p @angular/cli@12 ng new angular12-webpack5-inline-loader-repro
 
-Run `ng serve` for a dev server. Navigate to `http://localhost:4200/`. The app will automatically reload if you change any of the source files.
+? Would you like to add Angular routing? No
+? Which stylesheet format would you like to use? CSS
 
-## Code scaffolding
+CREATE angular12-webpack5-inline-loader-repro/angular.json (3231 bytes)
+CREATE angular12-webpack5-inline-loader-repro/package.json (1102 bytes)
+CREATE angular12-webpack5-inline-loader-repro/README.md (1081 bytes)
+CREATE angular12-webpack5-inline-loader-repro/tsconfig.json (783 bytes)
+CREATE angular12-webpack5-inline-loader-repro/.editorconfig (274 bytes)
+CREATE angular12-webpack5-inline-loader-repro/.gitignore (604 bytes)
+CREATE angular12-webpack5-inline-loader-repro/.browserslistrc (703 bytes)
+CREATE angular12-webpack5-inline-loader-repro/karma.conf.js (1455 bytes)
+CREATE angular12-webpack5-inline-loader-repro/tsconfig.app.json (287 bytes)
+CREATE angular12-webpack5-inline-loader-repro/tsconfig.spec.json (333 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/favicon.ico (948 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/index.html (320 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/main.ts (372 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/polyfills.ts (2820 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/styles.css (80 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/test.ts (788 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/assets/.gitkeep (0 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/environments/environment.prod.ts (51 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/environments/environment.ts (658 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/app/app.module.ts (314 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/app/app.component.html (24585 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/app/app.component.spec.ts (1052 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/app/app.component.ts (242 bytes)
+CREATE angular12-webpack5-inline-loader-repro/src/app/app.component.css (0 bytes)
+√ Packages installed successfully.
+```
 
-Run `ng generate component component-name` to generate a new component. You can also use `ng generate directive|pipe|service|class|guard|interface|enum|module`.
+## Step 2: Create `test.css` file
 
-## Build
+```
+// src/assets/test.css
 
-Run `ng build` to build the project. The build artifacts will be stored in the `dist/` directory.
+body {
+    background-color: red;
+}
+```
 
-## Running unit tests
+## Step 3: Import `test.css` file into `app.component.ts` and log it to the console
 
-Run `ng test` to execute the unit tests via [Karma](https://karma-runner.github.io).
+_Please note, we're using inline loader syntax here...
+We'd expect `typeof test` to be `object` and the `test` to be
+a navigable object in the browser console_
 
-## Running end-to-end tests
+```
+// src/app/app.component.ts
 
-Run `ng e2e` to execute the end-to-end tests via a platform of your choice. To use this command, you need to first add a package that implements end-to-end testing capabilities.
+import { Component } from '@angular/core';
 
-## Further help
+import test from 'css-loader!src/assets/test.css';
+console.log('typeof test: ', typeof test);
+console.log(test);
 
-To get more help on the Angular CLI use `ng help` or go check out the [Angular CLI Overview and Command Reference](https://angular.io/cli) page.
+@Component({
+  selector: 'app-root',
+  templateUrl: './app.component.html',
+  styleUrls: ['./app.component.css']
+})
+export class AppComponent {
+  title = 'angular12-webpack5-inline-loader-repro';
+}
+```
+
+## Step 4: Fix typescript error: _TS2307: Cannot find module 'src/assets/test.css' or its corresponding type declarations._
+
+Importing css files is not supported by Angular out-of-the-box. Thus we have to provide
+a matching module declaration. Please note, that this is not possible for @storybook, thus
+I don't think, this is related to the problem...
+
+```
+// /typings.d.ts
+
+declare module '*.css';
+```
+```
+// tsconfig.app.json
+
+{
+  "extends": "./tsconfig.json",
+  "compilerOptions": {
+    "outDir": "./out-tsc/app",
+    "types": []
+  },
+  "files": [
+    "src/main.ts",
+    "src/polyfills.ts"
+  ],
+  "include": [
+    "src/**/*.d.ts",
+    "typings.d.ts"
+  ]
+}
+```
+
+## Step 5: Install css-loader
+```
+$ npm i css-loader
+```
+
+## Step 6: Run the app
+```
+$ npm run start
+```
+
+[Open the app](http://localhost:4200) in the browser and press [F12] to open the dev tools.
+In the console we would expect `typeof test: object` and a navigable output showing the object's properties.
+
+However, what we see instead is `typeof test: string` and the js-code returned by the css-loader:
+```
+typeof test:  string
+app.component.ts:5 // Imports
+import ___CSS_LOADER_API_SOURCEMAP_IMPORT___ from "../../node_modules/css-loader/dist/runtime/sourceMaps.js";
+import ___CSS_LOADER_API_IMPORT___ from "../../node_modules/css-loader/dist/runtime/api.js";
+var ___CSS_LOADER_EXPORT___ = ___CSS_LOADER_API_IMPORT___(___CSS_LOADER_API_SOURCEMAP_IMPORT___);
+// Module
+___CSS_LOADER_EXPORT___.push([module.id, "body {\r\n  background-color: red;\r\n}\r\n", "",{"version":3,"sources":["webpack://./src/assets/test.css"],"names":[],"mappings":"AAAA;EACE,qBAAqB;AACvB","sourcesContent":["body {\r\n  background-color: red;\r\n}\r\n"],"sourceRoot":""}]);
+// Exports
+export default ___CSS_LOADER_EXPORT___;
+
+core.js:28047 Angular is running in development mode. Call enableProdMode() to enable production mode.
+index.js:52 [WDS] Live Reloading enabled.
+```

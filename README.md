@@ -113,20 +113,17 @@ $ npm run start
 ```
 
 [Open the app](http://localhost:4200) in the browser and press [F12] to open the dev tools.
+
+# Issue description
+
 In the console we would expect `typeof test: object` and a navigable output showing the object's properties.
 
 However, what we see instead is `typeof test: string` and the js-code returned by the css-loader:
-```
-typeof test:  string
-app.component.ts:5 // Imports
-import ___CSS_LOADER_API_SOURCEMAP_IMPORT___ from "../../node_modules/css-loader/dist/runtime/sourceMaps.js";
-import ___CSS_LOADER_API_IMPORT___ from "../../node_modules/css-loader/dist/runtime/api.js";
-var ___CSS_LOADER_EXPORT___ = ___CSS_LOADER_API_IMPORT___(___CSS_LOADER_API_SOURCEMAP_IMPORT___);
-// Module
-___CSS_LOADER_EXPORT___.push([module.id, "body {\r\n  background-color: red;\r\n}\r\n", "",{"version":3,"sources":["webpack://./src/assets/test.css"],"names":[],"mappings":"AAAA;EACE,qBAAqB;AACvB","sourcesContent":["body {\r\n  background-color: red;\r\n}\r\n"],"sourceRoot":""}]);
-// Exports
-export default ___CSS_LOADER_EXPORT___;
+> using `import test from 'src/assets/test.css';`
+> ![screenshot-1][1]
 
-core.js:28047 Angular is running in development mode. Call enableProdMode() to enable production mode.
-index.js:52 [WDS] Live Reloading enabled.
-```
+> using `import * as test from 'src/assets/test.css';`
+> ![screenshot-2][2]
+ 
+[1]: src/assets/screenshot-1.png
+[2]: src/assets/screenshot-2.png

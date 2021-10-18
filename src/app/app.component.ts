@@ -1,4 +1,8 @@
 import { Component } from '@angular/core';
+import test from 'src/assets/test.css';
+
+console.log('typeof test: ', typeof test);
+console.log(test);
 
 @Component({
   selector: 'app-root',
